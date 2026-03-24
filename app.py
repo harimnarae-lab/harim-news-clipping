@@ -394,12 +394,38 @@ st.info(f"검색 기간: **{start_dt.strftime('%Y.%m.%d %H:%M')}** ~ **{end_dt.s
 
 st.divider()
 
-# ── 키워드 구성 확인 ─────────────────────────────────────────
-with st.expander("🔍 검색 키워드 구성 보기"):
-    for sec in ['[자사]', '[그룹 및 계열사]', '[경쟁사]', '[식품 및 유통업계]', '[자사 부정기사]']:
-        kws = [k for k, (s, _) in ALL_KEYWORDS.items() if s == sec]
-        st.write(f"**{sec}**: {len(kws)}개")
-    st.write(f"→ **총 {len(ALL_KEYWORDS)}개** 키워드")
+# ── 키워드 관리 ───────────────────────────────────────────────
+if 'custom_keywords' not in st.session_state:
+    st.session_state.custom_keywords = dict(ALL_KEYWORDS)
+
+SECTIONS = ['[자사]', '[그룹 및 계열사]', '[경쟁사]', '[식품 및 유통업계]', '[자사 부정기사]']
+
+st.subheader("🔍 검색 키워드 관리")
+st.caption("※ 새로고침하면 기본값으로 초기화됩니다")
+
+for sec in SECTIONS:
+    kws_in_sec = [(k, cat) for k, (s, cat) in st.session_state.custom_keywords.items() if s == sec]
+    with st.expander(f"{sec} ({len(kws_in_sec)}개)"):
+        for kw, cat in kws_in_sec:
+            col_kw, col_cat, col_del = st.columns([3, 2, 1])
+            col_kw.write(f"🔹 {kw}")
+            col_cat.write(f"`{cat}`")
+            if col_del.button("삭제", key=f"del_{kw}"):
+                del st.session_state.custom_keywords[kw]
+                st.rerun()
+        st.divider()
+        col_new_kw, col_new_cat, col_add = st.columns([3, 2, 1])
+        new_kw  = col_new_kw.text_input("새 키워드", key=f"new_kw_{sec}", placeholder="예: 더미식 신제품")
+        new_cat = col_new_cat.text_input("카테고리", key=f"new_cat_{sec}", placeholder="예: 더미식")
+        if col_add.button("추가", key=f"add_{sec}"):
+            if new_kw and new_cat:
+                st.session_state.custom_keywords[new_kw] = (sec, new_cat)
+                st.success(f"✅ '{new_kw}' 추가됐어요!")
+                st.rerun()
+            else:
+                st.warning("키워드와 카테고리를 모두 입력해주세요.")
+
+st.info(f"현재 총 **{len(st.session_state.custom_keywords)}개** 키워드로 수집합니다")
 
 st.divider()
 
@@ -415,11 +441,11 @@ if st.button("🚀 뉴스 수집 시작", type="primary", use_container_width=Tr
         # 진행 상황 표시
         progress_bar = st.progress(0)
         status_text  = st.empty()
-        total_kw     = len(ALL_KEYWORDS)
+        total_kw     = len(st.session_state.custom_keywords)
         done         = 0
 
         for sec in sections_order:
-            keywords_in_sec = [k for k, (s, _) in ALL_KEYWORDS.items() if s == sec]
+            keywords_in_sec = [k for k, (s, _) in st.session_state.custom_keywords.items() if s == sec]
             for kw in keywords_in_sec:
                 status_text.text(f"검색 중: {sec} › {kw}")
                 arts = search_keyword(kw, start_dt, end_dt)
