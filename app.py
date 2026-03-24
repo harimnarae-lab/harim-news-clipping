@@ -376,16 +376,19 @@ else:        auto_days = 1
 
 auto_start = (now - timedelta(days=auto_days)).replace(hour=9, minute=0, second=0, microsecond=0)
 
+hour_options = [f"{h:02d}:00" for h in range(24)]
+
 col1, col2 = st.columns(2)
 with col1:
     start_date_input = st.date_input("시작 날짜", value=auto_start.date())
-    start_time_input = st.time_input("시작 시간", value=auto_start.time())
+    start_hour = st.selectbox("시작 시간", hour_options, index=9)  # 기본 09:00
 with col2:
     end_date_input = st.date_input("종료 날짜", value=now.date())
-    end_time_input = st.time_input("종료 시간", value=now.time())
+    end_hour = st.selectbox("종료 시간", hour_options, index=now.hour)  # 기본 현재 시각
 
-start_dt = datetime.combine(start_date_input, start_time_input)
-end_dt   = datetime.combine(end_date_input,   end_time_input)
+from datetime import time as dtime
+start_dt = datetime.combine(start_date_input, dtime(int(start_hour[:2]), 0))
+end_dt   = datetime.combine(end_date_input,   dtime(int(end_hour[:2]), 0))
 
 st.info(f"검색 기간: **{start_dt.strftime('%Y.%m.%d %H:%M')}** ~ **{end_dt.strftime('%Y.%m.%d %H:%M')}**")
 
